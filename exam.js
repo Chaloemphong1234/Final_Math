@@ -1,6 +1,8 @@
 /* ================== GLOBAL SETTINGS ================== */
 let students = {}
 let answers = {}
+// URL ของ Google Apps Script ที่คุณสร้างไว้
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwYKGrdngUyxOTNLNbNWjaM1P-CfSAw2qqdrAj6GBHT754J5asnODzh8KtUwwW0_TCmmA/exec";
 
 const correctAnswers = {
   1: "ก", 2: "ข", 3: "ก", 4: "ค", 5: "ง", 6: "ก", 7: "ก", 8: "ค", 9: "ก", 10: "ก",
@@ -16,8 +18,10 @@ const PASS_SCORE = 30
 let timeLeft = 90 * 60 
 let timerInterval
 
+// ตั้งค่าวันเวลาที่เริ่มสอบจริง: 25 มกราคม 2569 เวลา 18:05:00
+const EXAM_START_TIME = new Date(2026, 0, 25, 18, 50, 0);
+
 /* ================== CUSTOM POPUP SYSTEM ================== */
-// ฟังก์ชันสร้างและแสดง Popup แทนการใช้ alert
 function showModal(title, message, icon = '⚠️', callback = null) {
   let modal = document.getElementById('customModal');
   if (!modal) {
@@ -45,6 +49,29 @@ function showModal(title, message, icon = '⚠️', callback = null) {
   };
 }
 
+/* ================== DATABASE SENDING ================== */
+async function sendDataToSheet(score, total, status) {
+  const data = {
+    sid: localStorage.getItem("sid"),
+    name: localStorage.getItem("sname"),
+    score: score,
+    total: total,
+    status: status
+  };
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors", 
+      cache: "no-cache",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+  } catch (error) {
+    console.error("เกิดข้อผิดพลาดในการส่งข้อมูล:", error);
+  }
+}
+
 /* ================== LOAD STUDENTS ================== */
 if (document.getElementById("sid") || location.pathname.includes("exam.html")) {
   fetch("students.json")
@@ -56,8 +83,9 @@ if (document.getElementById("sid") || location.pathname.includes("exam.html")) {
 /* ================== LOGIN PAGE ================== */
 function checkStudent(){
   const id = document.getElementById("sid").value.trim()
-  if(!students[id]) return showModal("ไม่พบข้อมูล", "ไม่พบรหัสนักศึกษานี้ในระบบ กรุณาตรวจสอบอีกครั้ง", "❌");
+  if(!students[id]) return showModal("ไม่พบข้อมูล", "ไม่พบรหัสนักศึกษานี้ในระบบ", "❌");
 
+  localStorage.clear(); 
   localStorage.setItem("sid", id)
   localStorage.setItem("sname", students[id])
   location.href = "exam.html"
@@ -70,9 +98,54 @@ if(location.pathname.includes("exam.html")){
       location.href = "index.html";
   } else {
       document.getElementById("studentName").innerText = "ผู้เข้าสอบ: " + sname
-      startTimer()
       initSecurity()
+      checkExamTimeStatus() 
   }
+}
+
+// แก้ไขส่วนนี้ตามที่คุณต้องการ: ซ่อนทุกอย่างยกเว้นแถบบน และแสดงเลขนับถอยหลัง
+function checkExamTimeStatus() {
+  const examContainer = document.getElementById("examContainer");
+  
+  const timerLoop = setInterval(() => {
+    const now = new Date();
+    
+    if (now < EXAM_START_TIME) {
+      // 1. ซ่อนเนื้อหาข้อสอบทั้งหมด
+      if(examContainer) examContainer.style.display = "none";
+      
+      // 2. สร้างหน้าจอรอสอบ (Wait Message) ถ้ายังไม่มี
+      if (!document.getElementById("waitMessage")) {
+        const waitHTML = `
+          <div id="waitMessage" style="text-align:center; margin-top:100px; padding:40px;">
+            <div style="font-size: 5rem; margin-bottom: 20px;">⏳</div>
+            <h2 style="color:#f39c12; font-size: 2rem;">ยังไม่ถึงเวลาเริ่มการทดสอบ</h2>
+            <p style="font-size: 1.2rem; color: #666;">ข้อสอบและกระดาษคำตอบจะปรากฏอัตโนมัติเมื่อถึงเวลา 18:05 น.</p>
+            <div id="countdownDisplay" style="font-weight:bold; font-size:2.5rem; color:#2c3e50; margin-top:20px;"></div>
+          </div>`;
+        document.body.insertAdjacentHTML('beforeend', waitHTML);
+      }
+
+      // 3. อัปเดตตัวเลขวินาทีถอยหลัง
+      const diff = EXAM_START_TIME - now;
+      const mins = Math.floor(diff / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      const countdown = document.getElementById("countdownDisplay");
+      if(countdown) countdown.innerText = `เริ่มสอบในอีก ${mins} นาที ${secs} วินาที`;
+
+    } else {
+      // --- เมื่อถึงเวลาเริ่มสอบ ---
+      clearInterval(timerLoop); // หยุดการวนซ้ำเช็คเวลา
+      
+      const wm = document.getElementById("waitMessage");
+      if(wm) wm.remove(); // ลบหน้าจอรอสอบออก
+      
+      if(examContainer) {
+        examContainer.style.display = "flex"; // แสดงข้อสอบและกระดาษคำตอบทันที
+        startTimer(); // เริ่มเดินเวลาสอบ 90 นาที
+      }
+    }
+  }, 1000);
 }
 
 /* ================== TIMER ================== */
@@ -81,13 +154,6 @@ function startTimer(){
   timerInterval = setInterval(()=>{
     timeLeft--
     updateTimer()
-    
-    // ระบบแจ้งเตือนตามเงื่อนไข (เวลาเป็นวินาที)
-    if(timeLeft === 1800) alert("⚠ เหลือเวลา 30 นาที");
-    if(timeLeft === 600)  alert("⚠ เหลือเวลา 10 นาที");
-    if(timeLeft === 300)  alert("⚠ เหลือเวลา 5 นาที");
-    if(timeLeft === 60)   alert("⚠ เหลือเวลาสุดท้ายเพียง 1 นาที!");
-    
     if(timeLeft <= 0){
       clearInterval(timerInterval)
       submitExam(true)
@@ -116,18 +182,16 @@ function mark(q, a, btn){
 /* ================== SUBMIT ================== */
 function submitExam(auto){
   if(!auto && Object.keys(answers).length < TOTAL_QUESTIONS){
-    return showModal("ทำไม่ครบ!", `คุณเพิ่งทำไป ${Object.keys(answers).length} ข้อ กรุณาทำให้ครบทั้ง ${TOTAL_QUESTIONS} ข้อ`, "📝");
+    return showModal("ทำไม่ครบ!", `กรุณาทำให้ครบทั้ง ${TOTAL_QUESTIONS} ข้อ`, "📝");
   }
 
   window.onbeforeunload = null
+  localStorage.setItem("userAnswers", JSON.stringify(answers))
 
   if(auto){
-    localStorage.setItem("userAnswers", JSON.stringify(answers))
     location.href = "processing.html"
   } else {
-    // ใช้ Popup ยืนยันก่อนส่ง
-    showModal("ยืนยันการส่ง", "คุณมั่นใจหรือไม่ที่จะส่งข้อสอบ? เมื่อส่งแล้วจะไม่สามารถกลับมาแก้ไขได้", "❓", () => {
-        localStorage.setItem("userAnswers", JSON.stringify(answers))
+    showModal("ยืนยันการส่ง", "คุณมั่นใจหรือไม่ที่จะส่งข้อสอบ?", "❓", () => {
         location.href = "processing.html"
     });
   }
@@ -138,28 +202,20 @@ function initSecurity(){
   window.onbeforeunload = () => "คุณกำลังทำข้อสอบอยู่"
 
   document.addEventListener("visibilitychange",()=>{
-    if(document.hidden){
-      // แจ้งเตือนแล้วส่งทันที
-      showModal("ตรวจพบความผิดปกติ", "คุณออกจากหน้าจอสอบ ระบบจะทำการส่งข้อสอบโดยอัตโนมัติ", "🚫", () => {
-          submitExam(true);
-      });
-      // ป้องกันกรณีไม่กดตกลง ให้ส่งใน 2 วิ
-      setTimeout(() => submitExam(true), 2500);
-    }
+    if(document.hidden) submitExam(true);
   })
 
   document.addEventListener("contextmenu", e => e.preventDefault())
-  document.addEventListener("keydown", e => {
-      if(e.ctrlKey || e.metaKey || e.altKey || e.key.startsWith('F')) e.preventDefault();
-  })
+  
+  document.addEventListener("keydown", (e) => {
+      if(e.ctrlKey || e.metaKey || e.altKey || e.key.startsWith('F')) {
+          e.preventDefault();
+      }
+      // ลบส่วนที่บล็อกการทำงานปกติออกเพื่อให้ปุ่มกดได้ แต่ยังกันปุ่มลัด
+  }, true);
 }
-// เพิ่มส่วนนี้ลงไปใน exam.js เพื่อล็อกคีย์บอร์ดทุกหน้า
-document.addEventListener("keydown", (e) => {
-  // ยกเว้นปุ่ม F5 หรือปุ่มที่จำเป็นจริงๆ (ถ้าต้องการ) แต่ในที่นี้คือล็อก 100%
-  e.preventDefault();
-  return false;
-}, true);
-/* ================== RESULT PAGE ================== */
+
+/* ================== RESULT PAGE (คำนวณคะแนน) ================== */
 if(location.pathname.includes("result.html")){
   const userAns = JSON.parse(localStorage.getItem("userAnswers") || "{}")
   let score = 0
@@ -167,24 +223,28 @@ if(location.pathname.includes("result.html")){
     if(userAns[i]?.toString() === correctAnswers[i]) score++
   }
 
-  const percent = (score / TOTAL_QUESTIONS) * 100
   const isPass = score >= PASS_SCORE
-  const color = isPass ? "#2e7d32" : "#c62828"
+  const statusText = isPass ? "ผ่านการทดสอบ" : "ไม่ผ่านการทดสอบ"
+
+  if(!localStorage.getItem("dataSent")){
+      sendDataToSheet(score, TOTAL_QUESTIONS, statusText);
+      localStorage.setItem("dataSent", "true");
+  }
 
   const resultBox = document.getElementById("resultBox");
   if(resultBox) {
     resultBox.innerHTML = `
-      <h2 style="color:var(--primary)">ประกาศผลการสอบ</h2>
-      <hr style="border:1px solid #eee; margin:20px 0;">
-      <p style="font-size:1.1rem;">นักศึกษา: <b>${localStorage.getItem("sname")}</b></p>
-      <div style="font-size:5rem; font-weight:bold; color:${color}; margin:10px 0;">
-        ${score}<span style="font-size:1.5rem; color:#888;"> / ${TOTAL_QUESTIONS}</span>
+      <div style="text-align:center; padding: 20px;">
+        <div style="font-size: 5rem; margin-bottom: 20px;">📝</div>
+        <h2 style="color:var(--primary)">ส่งข้อสอบเรียบร้อยแล้ว</h2>
+        <hr style="border:1px solid #eee; margin:20px 0;">
+        <p style="font-size:1.2rem;">นักศึกษา: <b>${localStorage.getItem("sname")}</b></p>
+        <p style="color: #666; margin-bottom: 30px;">
+          ระบบได้บันทึกคำตอบและคะแนนของนักศึกษาเรียบร้อยแล้ว<br>
+          นักศึกษาสามารถปิดหน้าต่างนี้หรือออกจากห้องสอบได้ทันที
+        </p>
+        <button class="btn-login" onclick="localStorage.clear(); location.href='index.html'">กลับหน้าหลัก</button>
       </div>
-      <p style="font-size:1.2rem;">คิดเป็นร้อยละ: ${percent.toFixed(2)}%</p>
-      <div style="padding:15px; border-radius:15px; background:${color}11; color:${color}; font-size:1.5rem; font-weight:bold; margin-bottom:30px;">
-        ${isPass ? "🎉 ผ่านการทดสอบ" : "❌ ไม่ผ่านการทดสอบ"}
-      </div>
-      <button class="btn-login" onclick="location.href='index.html'">กลับหน้าหลัก</button>
     `
   }
 }

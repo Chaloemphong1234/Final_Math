@@ -21,9 +21,10 @@
   </div>
 </div>
 
-<div class="main-container">
-  <div class="questions">
-    <div class="q-card">
+<div id="examContainer" style="display: none;">
+  <div class="main-container">
+    <div class="questions">
+      <div class="q-card">
       <div style="font-size:1.3rem; font-weight:bold;">1. กำหนดให้ p = 11011011 และ q = 10010110 ข้อใดเป็นคำตอบของ <span style="text-decoration: overline;">p + q</span>
  </div>
       <p>ก. 00100000</p>
@@ -1184,28 +1185,32 @@
 
 
   <div class="sidebar">
-    <h3 style="text-align:center; color:var(--primary); margin-top:0;">กระดาษคำตอบ</h3>
-    <div id="answer-sheet-container"></div>
-    <button class="btn-login" style="margin-top:20px;" onclick="submitExam(false)">ส่งกระดาษคำตอบ</button>
+      <h3 style="text-align:center;">กระดาษคำตอบ</h3>
+      <div id="answer-sheet-container"></div> <button class="btn-login" style="width:100%;" onclick="submitExam(false)">ส่งข้อสอบ</button>
+    </div>
   </div>
 </div>
+
+<div id="answer-sheet-container"></div>
 
 <script src="exam.js"></script>
 <script>
   const sheetContainer = document.getElementById('answer-sheet-container');
-  for (let i = 1; i <= 60; i++) {
-    const row = document.createElement('div');
-    row.className = 'ans-row';
-    row.innerHTML = `
-      <span style="font-weight:bold; color:var(--primary);">${i.toString().padStart(2, '0')}</span>
-      <div class="answer-grid">
-        <button class="btn-circle" onclick="mark(${i},'ก',this)">ก</button>
-        <button class="btn-circle" onclick="mark(${i},'ข',this)">ข</button>
-        <button class="btn-circle" onclick="mark(${i},'ค',this)">ค</button>
-        <button class="btn-circle" onclick="mark(${i},'ง',this)">ง</button>
-      </div>
-    `;
-    sheetContainer.appendChild(row);
+  if (sheetContainer) {
+    for (let i = 1; i <= 60; i++) {
+      const row = document.createElement('div');
+      row.className = 'ans-row';
+      row.innerHTML = `
+        <span style="font-weight:bold; color:var(--primary);">${i.toString().padStart(2, '0')}</span>
+        <div class="answer-grid">
+          <button class="btn-circle" onclick="mark(${i},'ก',this)">ก</button>
+          <button class="btn-circle" onclick="mark(${i},'ข',this)">ข</button>
+          <button class="btn-circle" onclick="mark(${i},'ค',this)">ค</button>
+          <button class="btn-circle" onclick="mark(${i},'ง',this)">ง</button>
+        </div>
+      `;
+      sheetContainer.appendChild(row);
+    }
   }
 </script>
 </body>
