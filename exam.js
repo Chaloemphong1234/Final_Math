@@ -19,7 +19,7 @@ let timeLeft = 90 * 60
 let timerInterval
 
 // ตั้งค่าวันเวลาที่เริ่มสอบจริง: 25 มกราคม 2569 เวลา 18:05:00
-const EXAM_START_TIME = new Date(2026, 0, 25, 18, 50, 0);
+const EXAM_START_TIME = new Date(2026, 1, 19, 9, 0, 0);
 
 /* ================== CUSTOM POPUP SYSTEM ================== */
 function showModal(title, message, icon = '⚠️', callback = null) {
@@ -83,7 +83,7 @@ if (document.getElementById("sid") || location.pathname.includes("exam.html")) {
 /* ================== LOGIN PAGE ================== */
 function checkStudent(){
   const id = document.getElementById("sid").value.trim()
-  if(!students[id]) return showModal("ไม่พบข้อมูล", "ไม่พบรหัสนักศึกษานี้ในระบบ", "❌");
+  if(!students[id]) return showModal("ไม่พบข้อมูล", "ไม่พบข้อมูลนักศึกษานี้ในระบบ", "❌");
 
   localStorage.clear(); 
   localStorage.setItem("sid", id)
@@ -97,7 +97,7 @@ if(location.pathname.includes("exam.html")){
   if(!sname) {
       location.href = "index.html";
   } else {
-      document.getElementById("studentName").innerText = "ผู้เข้าสอบ: " + sname
+      document.getElementById("studentName").innerText = "ผู้รับการทดสอบ : " + sname
       initSecurity()
       checkExamTimeStatus() 
   }
@@ -120,7 +120,7 @@ function checkExamTimeStatus() {
           <div id="waitMessage" style="text-align:center; margin-top:100px; padding:40px;">
             <div style="font-size: 5rem; margin-bottom: 20px;">⏳</div>
             <h2 style="color:#f39c12; font-size: 2rem;">ยังไม่ถึงเวลาเริ่มการทดสอบ</h2>
-            <p style="font-size: 1.2rem; color: #666;">ข้อสอบและกระดาษคำตอบจะปรากฏอัตโนมัติเมื่อถึงเวลา 18:05 น.</p>
+            <p style="font-size: 1.2rem; color: #666;">ข้อสอบและกระดาษคำตอบจะปรากฏเมื่อถึงเวลา</p>
             <div id="countdownDisplay" style="font-weight:bold; font-size:2.5rem; color:#2c3e50; margin-top:20px;"></div>
           </div>`;
         document.body.insertAdjacentHTML('beforeend', waitHTML);
@@ -182,7 +182,7 @@ function mark(q, a, btn){
 /* ================== SUBMIT ================== */
 function submitExam(auto){
   if(!auto && Object.keys(answers).length < TOTAL_QUESTIONS){
-    return showModal("ทำไม่ครบ!", `กรุณาทำให้ครบทั้ง ${TOTAL_QUESTIONS} ข้อ`, "📝");
+    return showModal("ทำข้อสอบยังไม่ครบ!", `กรุณาทำให้ครบทั้ง ${TOTAL_QUESTIONS} ข้อ`, "📝");
   }
 
   window.onbeforeunload = null
@@ -191,7 +191,7 @@ function submitExam(auto){
   if(auto){
     location.href = "processing.html"
   } else {
-    showModal("ยืนยันการส่ง", "คุณมั่นใจหรือไม่ที่จะส่งข้อสอบ?", "❓", () => {
+    showModal("ยืนยันการส่ง", "คุณมั่นใจหรือไม่ที่จะส่งข้อสอบ", "❓", () => {
         location.href = "processing.html"
     });
   }
