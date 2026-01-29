@@ -19,8 +19,8 @@ let timeLeft = 90 * 60
 let timerInterval
 
 // ตั้งค่าวันเวลาที่เริ่มสอบจริง: 25 มกราคม 2569 เวลา 18:05:00
-const EXAM_START_TIME = new Date(2026, 1, 19, 9, 0, 0);
-
+const EXAM_START_TIME = new Date(2026, 1, 5, 9, 0, 0);
+const LATE_LIMIT_MINUTES = 10;
 /* ================== CUSTOM POPUP SYSTEM ================== */
 function showModal(title, message, icon = '⚠️', callback = null) {
   let modal = document.getElementById('customModal');
@@ -106,45 +106,79 @@ if(location.pathname.includes("exam.html")){
 // แก้ไขส่วนนี้ตามที่คุณต้องการ: ซ่อนทุกอย่างยกเว้นแถบบน และแสดงเลขนับถอยหลัง
 function checkExamTimeStatus() {
   const examContainer = document.getElementById("examContainer");
-  
+
   const timerLoop = setInterval(() => {
     const now = new Date();
-    
+
+    // ====== ยังไม่ถึงเวลาเริ่มสอบ ======
     if (now < EXAM_START_TIME) {
-      // 1. ซ่อนเนื้อหาข้อสอบทั้งหมด
-      if(examContainer) examContainer.style.display = "none";
-      
-      // 2. สร้างหน้าจอรอสอบ (Wait Message) ถ้ายังไม่มี
+      if (examContainer) examContainer.style.display = "none";
+
       if (!document.getElementById("waitMessage")) {
         const waitHTML = `
           <div id="waitMessage" style="text-align:center; margin-top:100px; padding:40px;">
             <div style="font-size: 5rem; margin-bottom: 20px;">⏳</div>
             <h2 style="color:#f39c12; font-size: 2rem;">ยังไม่ถึงเวลาเริ่มการทดสอบ</h2>
-            <p style="font-size: 1.2rem; color: #666;">ข้อสอบและกระดาษคำตอบจะปรากฏเมื่อถึงเวลา</p>
-            <div id="countdownDisplay" style="font-weight:bold; font-size:2.5rem; color:#2c3e50; margin-top:20px;"></div>
+            <div id="countdownDisplay"
+                 style="font-weight:bold; font-size:2.5rem; color:#2c3e50; margin-top:20px;">
+            </div>
           </div>`;
         document.body.insertAdjacentHTML('beforeend', waitHTML);
       }
 
-      // 3. อัปเดตตัวเลขวินาทีถอยหลัง
       const diff = EXAM_START_TIME - now;
       const mins = Math.floor(diff / 60000);
       const secs = Math.floor((diff % 60000) / 1000);
       const countdown = document.getElementById("countdownDisplay");
-      if(countdown) countdown.innerText = `เริ่มสอบในอีก ${mins} นาที ${secs} วินาที`;
-
-    } else {
-      // --- เมื่อถึงเวลาเริ่มสอบ ---
-      clearInterval(timerLoop); // หยุดการวนซ้ำเช็คเวลา
-      
-      const wm = document.getElementById("waitMessage");
-      if(wm) wm.remove(); // ลบหน้าจอรอสอบออก
-      
-      if(examContainer) {
-        examContainer.style.display = "flex"; // แสดงข้อสอบและกระดาษคำตอบทันที
-        startTimer(); // เริ่มเดินเวลาสอบ 90 นาที
+      if (countdown) {
+        countdown.innerText = `เริ่มสอบในอีก ${mins} นาที ${secs} วินาที`;
       }
+      return;
     }
+
+    // ====== ถึงเวลาแล้ว : ตรวจสอบมาสาย ======
+    const lateMinutes = Math.floor((now - EXAM_START_TIME) / 60000);
+
+    // ❌ มาสายเกิน 15 นาที
+    if (lateMinutes > LATE_LIMIT_MINUTES) {
+      clearInterval(timerLoop);
+
+      if (examContainer) examContainer.style.display = "none";
+      const wm = document.getElementById("waitMessage");
+      if (wm) wm.remove();
+
+      document.body.insertAdjacentHTML("beforeend", `
+        <div style="text-align:center; margin-top:120px;">
+          <div style="font-size:5rem;">❌</div>
+          <h2 style="color:#c0392b;">นักศึกษาไม่มาสอบตามเวลาที่กำหนด</h2>
+          <p style="font-size:1.4rem;">
+            มาสาย <b>${lateMinutes}</b> นาที<br>
+            เกินเวลาที่อนุญาต ${LATE_LIMIT_MINUTES} นาที
+          </p>
+          <h3 style="color:#555;">หมดสิทธิ์เข้าสอบ</h3>
+        </div>
+      `);
+      return;
+    }
+
+    // ✅ มาสายแต่ยังอยู่ในเวลาที่อนุญาต (≤ 15 นาที)
+    clearInterval(timerLoop);
+
+    const wm = document.getElementById("waitMessage");
+    if (wm) wm.remove();
+
+    if (examContainer) {
+      examContainer.style.display = "flex";
+
+      // ====== หักเวลาที่มาช้าออกจากเวลาสอบ ======
+      const EXAM_DURATION_MINUTES = 90;
+      timeLeft = (EXAM_DURATION_MINUTES * 60) - (lateMinutes * 60);
+
+      if (timeLeft < 0) timeLeft = 0;
+
+      startTimer(); // ใช้ระบบจับเวลาเดิมทั้งหมด
+    }
+
   }, 1000);
 }
 
