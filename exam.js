@@ -277,7 +277,7 @@ if(location.pathname.includes("result.html")){
           ระบบได้บันทึกคำตอบและคะแนนของนักศึกษาเรียบร้อยแล้ว<br>
           นักศึกษาสามารถปิดหน้าต่างนี้หรือออกจากห้องสอบได้ทันที
         </p>
-        <button class="btn-login" onclick="localStorage.clear(); location.href='index.html'">กลับหน้าหลัก</button>
+        
       </div>
     `
   }
