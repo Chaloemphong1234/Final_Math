@@ -19,7 +19,7 @@ let timeLeft = 90 * 60
 let timerInterval
 
 // ตั้งค่าวันเวลาที่เริ่มสอบจริง: 25 มกราคม 2569 เวลา 18:05:00
-const EXAM_START_TIME = new Date(2026, 1, 5, 9, 0, 0);
+const EXAM_START_TIME = new Date(2026, 1, 2, 9, 45, 0);
 const LATE_LIMIT_MINUTES = 10;
 /* ================== CUSTOM POPUP SYSTEM ================== */
 function showModal(title, message, icon = '⚠️', callback = null) {
