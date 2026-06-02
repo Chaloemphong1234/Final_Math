@@ -7,31 +7,28 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwYKGrdngUyxOTNLNbNW
 const correctAnswers = {
   1: "ก", 2: "ข", 3: "ก", 4: "ค", 5: "ง", 6: "ก", 7: "ก", 8: "ค", 9: "ก", 10: "ก",
   11: "ข", 12: "ข", 13: "ง", 14: "ก", 15: "ข", 16: "ก", 17: "ง", 18: "ก", 19: "ข", 20: "ข",
-  21: "ข", 22: "ข", 23: "ข", 24: "ค", 25: "ก", 26: "ก", 27: "ข", 28: "ข", 29: "ง", 30: "ค",
-  31: "ข", 32: "ค", 33: "ง", 34: "ก", 35: "ข", 36: "ค", 37: "ก", 38: "ข", 39: "ข", 40: "ก",
-  41: "ง", 42: "ข", 43: "ข", 44: "ก", 45: "ง", 46: "ก", 47: "ข", 48: "ข", 49: "ง", 50: "ก",
-  51: "ข", 52: "ค", 53: "ง", 54: "ง", 55: "ข", 56: "ง", 57: "ง", 58: "ก", 59: "ข", 60: "ก"
 }
 
-const TOTAL_QUESTIONS = 60
-const PASS_SCORE = 30
-let timeLeft = 90 * 60 
+const TOTAL_QUESTIONS = 20
+const PASS_SCORE = 10
+let timeLeft = 40 * 60 
 let timerInterval
 
-// ตั้งค่าวันเวลาที่เริ่มสอบจริง: 25 มกราคม 2569 เวลา 18:05:00
-const EXAM_START_TIME = new Date(2026, 1, 9, 10, 0, 0);
+// ตั้งค่าวันเวลาที่เริ่มสอบจริง (ปี-เดือน-วัน เวลา) เช่น "2026-06-02T13:00:00"
+const EXAM_START_TIME = new Date("2026-06-06T10:00:00"); 
 const LATE_LIMIT_MINUTES = 10;
+
 /* ================== CUSTOM POPUP SYSTEM ================== */
 function showModal(title, message, icon = '⚠️', callback = null) {
   let modal = document.getElementById('customModal');
   if (!modal) {
     const modalHTML = `
       <div id="customModal" class="modal-overlay">
-        <div class="modal-content">
-          <div class="modal-icon" id="modalIcon"></div>
-          <h2 id="modalTitle" style="margin:0 0 10px 0;"></h2>
-          <p id="modalMsg" style="margin-bottom:25px; line-height:1.6;"></p>
-          <button class="btn-login" id="modalBtn">ตกลง</button>
+        <div class="modal-content-custom">
+          <div class="modal-icon" id="modalIcon" style="font-size: 4rem; margin-bottom: 15px;"></div>
+          <h4 id="modalTitle" class="fw-bold text-primary mb-2"></h4>
+          <p id="modalMsg" class="text-muted mb-4"></p>
+          <button class="btn btn-primary w-100 rounded-pill py-2 fw-bold" id="modalBtn" style="font-size: 1.1rem;">ตกลง</button>
         </div>
       </div>`;
     document.body.insertAdjacentHTML('beforeend', modalHTML);
@@ -103,7 +100,6 @@ if(location.pathname.includes("exam.html")){
   }
 }
 
-// แก้ไขส่วนนี้ตามที่คุณต้องการ: ซ่อนทุกอย่างยกเว้นแถบบน และแสดงเลขนับถอยหลัง
 function checkExamTimeStatus() {
   const examContainer = document.getElementById("examContainer");
 
@@ -118,9 +114,8 @@ function checkExamTimeStatus() {
         const waitHTML = `
           <div id="waitMessage" style="text-align:center; margin-top:100px; padding:40px;">
             <div style="font-size: 5rem; margin-bottom: 20px;">⏳</div>
-            <h2 style="color:#f39c12; font-size: 2rem;">ยังไม่ถึงเวลาเริ่มการทดสอบ</h2>
-            <div id="countdownDisplay"
-                 style="font-weight:bold; font-size:2.5rem; color:#2c3e50; margin-top:20px;">
+            <h2 class="text-warning fw-bold mb-3">ยังไม่ถึงเวลาเริ่มการทดสอบ</h2>
+            <div id="countdownDisplay" class="fw-bold text-dark" style="font-size:2.5rem; margin-top:20px;">
             </div>
           </div>`;
         document.body.insertAdjacentHTML('beforeend', waitHTML);
@@ -139,7 +134,7 @@ function checkExamTimeStatus() {
     // ====== ถึงเวลาแล้ว : ตรวจสอบมาสาย ======
     const lateMinutes = Math.floor((now - EXAM_START_TIME) / 60000);
 
-    // ❌ มาสายเกิน 15 นาที
+    // ❌ มาสายเกิน 10 นาที
     if (lateMinutes > LATE_LIMIT_MINUTES) {
       clearInterval(timerLoop);
 
@@ -150,28 +145,28 @@ function checkExamTimeStatus() {
       document.body.insertAdjacentHTML("beforeend", `
         <div style="text-align:center; margin-top:120px;">
           <div style="font-size:5rem;">❌</div>
-          <h2 style="color:#c0392b;">นักศึกษาไม่มาสอบตามเวลาที่กำหนด</h2>
-          <p style="font-size:1.4rem;">
+          <h2 class="text-danger fw-bold">นักศึกษาไม่มาสอบตามเวลาที่กำหนด</h2>
+          <p class="fs-4 text-muted mt-3">
             มาสาย <b>${lateMinutes}</b> นาที<br>
             เกินเวลาที่อนุญาต ${LATE_LIMIT_MINUTES} นาที
           </p>
-          <h3 style="color:#555;">หมดสิทธิ์เข้าสอบ</h3>
+          <h3 class="text-secondary mt-4">หมดสิทธิ์เข้าสอบ</h3>
         </div>
       `);
       return;
     }
 
-    // ✅ มาสายแต่ยังอยู่ในเวลาที่อนุญาต (≤ 15 นาที)
+    // ✅ มาสายแต่ยังอยู่ในเวลาที่อนุญาต (≤ 10 นาที)
     clearInterval(timerLoop);
 
     const wm = document.getElementById("waitMessage");
     if (wm) wm.remove();
 
     if (examContainer) {
-      examContainer.style.display = "flex";
+      examContainer.style.display = "block";
 
       // ====== หักเวลาที่มาช้าออกจากเวลาสอบ ======
-      const EXAM_DURATION_MINUTES = 90;
+      const EXAM_DURATION_MINUTES = 40;
       timeLeft = (EXAM_DURATION_MINUTES * 60) - (lateMinutes * 60);
 
       if (timeLeft < 0) timeLeft = 0;
@@ -268,16 +263,18 @@ if(location.pathname.includes("result.html")){
   const resultBox = document.getElementById("resultBox");
   if(resultBox) {
     resultBox.innerHTML = `
-      <div style="text-align:center; padding: 20px;">
-        <div style="font-size: 5rem; margin-bottom: 20px;">📝</div>
-        <h2 style="color:var(--primary)">ส่งข้อสอบเรียบร้อยแล้ว</h2>
-        <hr style="border:1px solid #eee; margin:20px 0;">
-        <p style="font-size:1.2rem;">นักศึกษา: <b>${localStorage.getItem("sname")}</b></p>
-        <p style="color: #666; margin-bottom: 30px;">
-          ระบบได้บันทึกคำตอบและคะแนนของนักศึกษาเรียบร้อยแล้ว<br>
-          นักศึกษาสามารถปิดหน้าต่างนี้หรือออกจากห้องสอบได้ทันที
+      <div class="text-center">
+        <div style="font-size: 5rem; margin-bottom: 15px;">🎉</div>
+        <h3 class="fw-bold text-primary mb-3">ส่งข้อสอบเรียบร้อยแล้ว</h3>
+        <hr class="text-muted my-4">
+        <h5 class="fw-bold text-dark mb-3">นักศึกษา: <span class="text-primary">${localStorage.getItem("sname")}</span></h5>
+        <p class="text-muted" style="line-height: 1.6;">
+          ระบบได้บันทึกคำตอบและคะแนนของคุณเข้าสู่ระบบกลางเรียบร้อยแล้ว<br>
+          <span class="fw-bold text-success">ขอบคุณที่ตั้งใจทำข้อสอบ ขอให้โชคดีครับ!</span>
         </p>
-        
+        <div class="mt-4 p-3 bg-light rounded text-muted small">
+          คุณสามารถปิดหน้าต่างนี้หรือออกจากห้องสอบได้ทันที
+        </div>
       </div>
     `
   }
